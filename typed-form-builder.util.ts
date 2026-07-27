@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.1
+ * Version: 0.1.2
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -46,7 +46,7 @@ export type DeepPartial<T> = T extends {
   : T extends Function | Date | RegExp
     ? T
     : T extends object
-      ? { [K in keyof T]?: DeepPartial<T[K]> }
+      ? { [K in keyof T]: DeepPartial<T[K]> }
       : T;
 
 // FORM CONTROL TYPING
