@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.4
+ * Version: 0.1.5
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -26,200 +26,196 @@
  */
 
 import {
-  AbstractControl,
-  AbstractControlOptions,
-  AsyncValidatorFn,
-  FormArray,
-  FormBuilder,
-  FormControl,
-  FormControlOptions,
-  FormGroup,
-  ValidationErrors,
-  ValidatorFn,
-  Validators,
-} from '@angular/forms';
-import { Observable } from 'rxjs';
-
-
-
-export type ExtractValueFromControlDefinition<T> =
-  T extends readonly { value: infer V, [key: string | number | symbol]: any }[] ? V :
-  T extends readonly [infer V, ...any[]] ? V :
-  T extends readonly (infer V)[] ? V :
-  T;
-
-type Teste = ExtractValueFromControlDefinition<(
-  { value: string; disabled: boolean; } |
-  ((control: AbstractControl) => ValidationErrors | null)[]
-)[]
->
-
-export type DeepPartial<T> =
-  T extends Function | Date | RegExp ? T :
-  T extends { value: infer V; patchValue: any; } ? ExtractValueFromControlDefinition<DeepPartial<V>> :
-  T extends object ? { [K in keyof T]: ExtractValueFromControlDefinition<DeepPartial<T[K]>> } :
-  ExtractValueFromControlDefinition<T>;
-
-// FORM CONTROL TYPING
-export interface TypedFormControl<T> extends FormControl {
-  setValue(
-    value: T,
-    options?: {
-      onlySelf?: boolean;
-      emitEvent?: boolean;
-      emitModelToViewChange?: boolean;
-      emitViewToModelChange?: boolean;
-    },
-  ): void;
-  patchValue(
-    value: T,
-    options?: {
-      onlySelf?: boolean;
-      emitEvent?: boolean;
-      emitModelToViewChange?: boolean;
-      emitViewToModelChange?: boolean;
-    },
-  ): void;
-}
-export class TypedFormControl<T> extends FormControl {
-  declare value: T;
-  declare valueChanges: Observable<T>;
-  declare defaultValue: T;
-}
-
-type TypedAbstractControl<T> =
-  T extends TypedFormGroup<infer U> ? TypedFormGroup<U> :
-  T extends TypedFormControl<infer U> ? TypedFormControl<U> :
-  T extends TypedFormArray<infer U> ? TypedFormArray<U> :
-  TypedFormControl<T>;
-
-// TYPED FORM GROUP TYPING
-export interface TypedFormGroup<T> extends FormGroup {
-  get<V extends T[K], K extends keyof T>(
-    path: K,
-  ): TypedAbstractControl<V> | null;
-  /** @inheritdoc FormGroup.get */
-  get(path: string | (string | number)[]): AbstractControl | null;
-
-  addControl(
-    name: string,
-    control: TypedAbstractControl<any>,
-    options?: { emitEvent?: boolean },
-  ): void;
-
-  contains(controlName: keyof T | (string & {})): boolean;
-
-  getRawValue(): DeepPartial<T>;
-
-  patchValue(
-    value: DeepPartial<T>,
-    options?: { onlySelf?: boolean; emitEvent?: boolean },
-  ): void;
-
-  removeControl(
-    name: keyof T | (string & {}),
-    options?: { emitEvent?: boolean },
-  ): void;
-
-  reset(
-    value?: DeepPartial<T>,
-    options?: { onlySelf?: boolean; emitEvent?: boolean },
-  ): void;
-
-  setControl<K extends keyof T>(
-    name: Extract<K, string>,
-    control: TypedFormControl<T[K]> | AbstractControl,
-    options?: { emitEvent?: boolean },
-  ): void;
-
-  setValue(
-    value: T & { [key: string]: any },
-    options?: { onlySelf?: boolean; emitEvent?: boolean },
-  ): void;
-}
-
-export class TypedFormGroup<T> extends FormGroup {
-  declare controls: {
-    [K in keyof T]: TypedAbstractControl<T[K]>;
-  };
-  declare value: {
+    AbstractControl,
+    AbstractControlOptions,
+    AsyncValidatorFn,
+    FormArray,
+    FormBuilder,
+    FormControl,
+    FormControlOptions,
+    FormGroup,
+    ValidationErrors,
+    ValidatorFn,
+    Validators,
+  } from '@angular/forms';
+  import { Observable } from 'rxjs';
+  
+  
+  
+  export type ExtractValueFromControlDefinition<T> =
+    T extends {value: infer V} ? V :
+    T extends (infer U)[] ? ExtractValueFromControlDefinition<Exclude<U, any[]>> : 
+    T extends readonly { value: infer V, [key: string | number | symbol]: any }[] ? V :
+    T extends readonly [infer V, ...any[]] ? V :
+    T extends readonly (infer V)[] ? V :
+    T;
+  
+  export type DeepPartial<T> =
+    T extends Function | Date | RegExp ? T :
+    T extends { value: infer V; patchValue: any; } ? ExtractValueFromControlDefinition<DeepPartial<V>> :
+    T extends object ? { [K in keyof T]: ExtractValueFromControlDefinition<DeepPartial<T[K]>> } :
+    ExtractValueFromControlDefinition<T>;
+  
+  // FORM CONTROL TYPING
+  export interface TypedFormControl<T> extends FormControl {
+    setValue(
+      value: T,
+      options?: {
+        onlySelf?: boolean;
+        emitEvent?: boolean;
+        emitModelToViewChange?: boolean;
+        emitViewToModelChange?: boolean;
+      },
+    ): void;
+    patchValue(
+      value: T,
+      options?: {
+        onlySelf?: boolean;
+        emitEvent?: boolean;
+        emitModelToViewChange?: boolean;
+        emitViewToModelChange?: boolean;
+      },
+    ): void;
+  }
+  export class TypedFormControl<T> extends FormControl {
+    declare value: T;
+    declare valueChanges: Observable<T>;
+    declare defaultValue: T;
+  }
+  
+  type TypedAbstractControl<T> =
+    T extends TypedFormGroup<infer U> ? TypedFormGroup<U> :
+    T extends TypedFormControl<infer U> ? TypedFormControl<U> :
+    T extends TypedFormArray<infer U> ? TypedFormArray<U> :
+    TypedFormControl<T>;
+  
+  // TYPED FORM GROUP TYPING
+  export interface TypedFormGroup<T> extends FormGroup {
+    get<V extends T[K], K extends keyof T>(
+      path: K,
+    ): TypedAbstractControl<V> | null;
+    /** @inheritdoc FormGroup.get */
+    get(path: string | (string | number)[]): AbstractControl | null;
+  
+    addControl(
+      name: string,
+      control: TypedAbstractControl<any>,
+      options?: { emitEvent?: boolean },
+    ): void;
+  
+    contains(controlName: keyof T | (string & {})): boolean;
+  
+    getRawValue(): DeepPartial<T>;
+  
+    patchValue(
+      value: DeepPartial<T>,
+      options?: { onlySelf?: boolean; emitEvent?: boolean },
+    ): void;
+  
+    removeControl(
+      name: keyof T | (string & {}),
+      options?: { emitEvent?: boolean },
+    ): void;
+  
+    reset(
+      value?: DeepPartial<T>,
+      options?: { onlySelf?: boolean; emitEvent?: boolean },
+    ): void;
+  
+    setControl<K extends keyof T>(
+      name: Extract<K, string>,
+      control: TypedFormControl<T[K]> | AbstractControl,
+      options?: { emitEvent?: boolean },
+    ): void;
+  
+    setValue(
+      value: T & { [key: string]: any },
+      options?: { onlySelf?: boolean; emitEvent?: boolean },
+    ): void;
+  }
+  
+  export class TypedFormGroup<T> extends FormGroup {
+    declare controls: {
+      [K in keyof T]: TypedAbstractControl<T[K]>;
+    };
+    declare value: {
+      [K in keyof T]: T[K];
+    };
+    declare valueChanges: Observable<T[keyof T]>;
+  }
+  
+  // TYPED FORM ARRAY TYPING
+  export interface TypedFormArray<T> extends FormArray {
+    get(path: number): TypedFormControl<T> | null;
+    get(path: Array<string | number> | string): AbstractControl | null;
+    at(index: number): TypedFormControl<T>;
+  
+    insert(
+      index: number,
+      control: TypedFormControl<T>,
+      options?: { emitEvent?: boolean },
+    ): void;
+  
+    push(
+      control: TypedFormControl<T>,
+      options?: { emitEvent?: boolean },
+    ): void;
+  
+    setControl(
+      index: number,
+      control: TypedFormControl<T>,
+      options?: { emitEvent?: boolean },
+    ): void;
+  
+    setValue(
+      value: T[],
+      options?: { onlySelf?: boolean; emitEvent?: boolean },
+    ): void;
+  }
+  
+  export class TypedFormArray<T> extends FormArray {
+    declare readonly controls: TypedFormControl<T>[];
+    declare readonly value: T[];
+  }
+  
+  // TYPED FORM BUILDER TYPING
+  type TypedControlDefinition<T> =
+    | T
+    | [T, ...any]
+    | TypedFormControl<T>;
+  // | ({ value: T[K] } & {
+  //     [key: string | number | symbol]: any;
+  //   });
+  
+  type TypedGroupControlConfigDefinition<T> = {
     [K in keyof T]: T[K];
   };
-  declare valueChanges: Observable<T[keyof T]>;
-}
-
-// TYPED FORM ARRAY TYPING
-export interface TypedFormArray<T> extends FormArray {
-  get(path: number): TypedFormControl<T> | null;
-  get(path: Array<string | number> | string): AbstractControl | null;
-  at(index: number): TypedFormControl<T>;
-
-  insert(
-    index: number,
-    control: TypedFormControl<T>,
-    options?: { emitEvent?: boolean },
-  ): void;
-
-  push(
-    control: TypedFormControl<T>,
-    options?: { emitEvent?: boolean },
-  ): void;
-
-  setControl(
-    index: number,
-    control: TypedFormControl<T>,
-    options?: { emitEvent?: boolean },
-  ): void;
-
-  setValue(
-    value: T[],
-    options?: { onlySelf?: boolean; emitEvent?: boolean },
-  ): void;
-}
-
-export class TypedFormArray<T> extends FormArray {
-  declare readonly controls: TypedFormControl<T>[];
-  declare readonly value: T[];
-}
-
-// TYPED FORM BUILDER TYPING
-type TypedControlDefinition<T> =
-  | T
-  | [T, ...any]
-  | TypedFormControl<T>;
-// | ({ value: T[K] } & {
-//     [key: string | number | symbol]: any;
-//   });
-
-type TypedGroupControlConfigDefinition<T> = {
-  [K in keyof T]: T[K];
-};
-type TypedArrayControlConfigDefinition<T> =
-  TypedControlDefinition<T>[];
-
-type FormBuilderOptions = Parameters<FormBuilder['group']>['1'];
-
-export interface TypedFormBuilder {
-  group<T>(
-    controlsConfig: TypedGroupControlConfigDefinition<T>,
-    options?: FormBuilderOptions,
-  ): TypedFormGroup<T>;
-
-  control<T>(
-    formState: TypedControlDefinition<T>,
-    validatorOrOpts?: ValidatorFn | ValidatorFn[] | FormControlOptions | null,
-    asyncValidator?: AsyncValidatorFn | AsyncValidatorFn[] | null,
-  ): TypedFormControl<T>;
-
-  array<T>(
-    controlsConfig: TypedArrayControlConfigDefinition<T>,
-    validatorOrOpts?:
-      | ValidatorFn
-      | ValidatorFn[]
-      | AbstractControlOptions
-      | null,
-    asyncValidator?: AsyncValidatorFn | AsyncValidatorFn[] | null,
-  ): TypedFormArray<T>;
-}
-
-export class TypedFormBuilder extends FormBuilder { }
+  type TypedArrayControlConfigDefinition<T> =
+    TypedControlDefinition<T>[];
+  
+  type FormBuilderOptions = Parameters<FormBuilder['group']>['1'];
+  
+  export interface TypedFormBuilder {
+    group<T>(
+      controlsConfig: TypedGroupControlConfigDefinition<T>,
+      options?: FormBuilderOptions,
+    ): TypedFormGroup<T>;
+  
+    control<T>(
+      formState: TypedControlDefinition<T>,
+      validatorOrOpts?: ValidatorFn | ValidatorFn[] | FormControlOptions | null,
+      asyncValidator?: AsyncValidatorFn | AsyncValidatorFn[] | null,
+    ): TypedFormControl<T>;
+  
+    array<T>(
+      controlsConfig: TypedArrayControlConfigDefinition<T>,
+      validatorOrOpts?:
+        | ValidatorFn
+        | ValidatorFn[]
+        | AbstractControlOptions
+        | null,
+      asyncValidator?: AsyncValidatorFn | AsyncValidatorFn[] | null,
+    ): TypedFormArray<T>;
+  }
+  
+  export class TypedFormBuilder extends FormBuilder { }
