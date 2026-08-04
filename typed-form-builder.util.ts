@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.3
+ * Version: 0.1.4
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -34,20 +34,31 @@ import {
   FormControl,
   FormControlOptions,
   FormGroup,
+  ValidationErrors,
   ValidatorFn,
+  Validators,
 } from '@angular/forms';
 import { Observable } from 'rxjs';
 
-export type DeepPartial<T> = T extends {
-  value: infer V;
-  patchValue: any;
-}
-  ? DeepPartial<V>
-  : T extends Function | Date | RegExp
-  ? T
-  : T extends object
-  ? { [K in keyof T]: DeepPartial<T[K]> }
-  : T;
+
+
+export type ExtractValueFromControlDefinition<T> =
+  T extends readonly { value: infer V, [key: string | number | symbol]: any }[] ? V :
+  T extends readonly [infer V, ...any[]] ? V :
+  T extends readonly (infer V)[] ? V :
+  T;
+
+type Teste = ExtractValueFromControlDefinition<(
+  { value: string; disabled: boolean; } |
+  ((control: AbstractControl) => ValidationErrors | null)[]
+)[]
+>
+
+export type DeepPartial<T> =
+  T extends Function | Date | RegExp ? T :
+  T extends { value: infer V; patchValue: any; } ? ExtractValueFromControlDefinition<DeepPartial<V>> :
+  T extends object ? { [K in keyof T]: ExtractValueFromControlDefinition<DeepPartial<T[K]>> } :
+  ExtractValueFromControlDefinition<T>;
 
 // FORM CONTROL TYPING
 export interface TypedFormControl<T> extends FormControl {
@@ -76,7 +87,8 @@ export class TypedFormControl<T> extends FormControl {
   declare defaultValue: T;
 }
 
-type TypedAbstractControl<T> = T extends TypedFormGroup<infer U> ? TypedFormGroup<U> :
+type TypedAbstractControl<T> =
+  T extends TypedFormGroup<infer U> ? TypedFormGroup<U> :
   T extends TypedFormControl<infer U> ? TypedFormControl<U> :
   T extends TypedFormArray<infer U> ? TypedFormArray<U> :
   TypedFormControl<T>;
@@ -100,7 +112,7 @@ export interface TypedFormGroup<T> extends FormGroup {
   getRawValue(): DeepPartial<T>;
 
   patchValue(
-    value: Partial<T>,
+    value: DeepPartial<T>,
     options?: { onlySelf?: boolean; emitEvent?: boolean },
   ): void;
 
@@ -110,7 +122,7 @@ export interface TypedFormGroup<T> extends FormGroup {
   ): void;
 
   reset(
-    value?: Partial<T>,
+    value?: DeepPartial<T>,
     options?: { onlySelf?: boolean; emitEvent?: boolean },
   ): void;
 
@@ -128,10 +140,10 @@ export interface TypedFormGroup<T> extends FormGroup {
 
 export class TypedFormGroup<T> extends FormGroup {
   declare controls: {
-    [ObjectKey in keyof T]: TypedFormControl<T[ObjectKey]>;
+    [K in keyof T]: TypedAbstractControl<T[K]>;
   };
   declare value: {
-    [ObjectKey in keyof T]: T[ObjectKey];
+    [K in keyof T]: T[K];
   };
   declare valueChanges: Observable<T[keyof T]>;
 }
