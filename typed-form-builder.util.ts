@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.2
+ * Version: 0.1.3
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -44,15 +44,15 @@ export type DeepPartial<T> = T extends {
 }
   ? DeepPartial<V>
   : T extends Function | Date | RegExp
-    ? T
-    : T extends object
-      ? { [K in keyof T]: DeepPartial<T[K]> }
-      : T;
+  ? T
+  : T extends object
+  ? { [K in keyof T]: DeepPartial<T[K]> }
+  : T;
 
 // FORM CONTROL TYPING
-export interface TypedControl<ObjectValue> extends FormControl {
+export interface TypedFormControl<T> extends FormControl {
   setValue(
-    value: ObjectValue,
+    value: T,
     options?: {
       onlySelf?: boolean;
       emitEvent?: boolean;
@@ -61,7 +61,7 @@ export interface TypedControl<ObjectValue> extends FormControl {
     },
   ): void;
   patchValue(
-    value: ObjectValue,
+    value: T,
     options?: {
       onlySelf?: boolean;
       emitEvent?: boolean;
@@ -70,141 +70,144 @@ export interface TypedControl<ObjectValue> extends FormControl {
     },
   ): void;
 }
-export class TypedControl<ObjectValue> extends FormControl {
-  declare value: ObjectValue;
-  declare valueChanges: Observable<ObjectValue>;
-  declare defaultValue: ObjectValue;
+export class TypedFormControl<T> extends FormControl {
+  declare value: T;
+  declare valueChanges: Observable<T>;
+  declare defaultValue: T;
 }
 
+type TypedAbstractControl<T> = T extends TypedFormGroup<infer U> ? TypedFormGroup<U> :
+  T extends TypedFormControl<infer U> ? TypedFormControl<U> :
+  T extends TypedFormArray<infer U> ? TypedFormArray<U> :
+  TypedFormControl<T>;
+
 // TYPED FORM GROUP TYPING
-export interface TypedFormGroup<ObjectType> extends FormGroup {
-  get<ObjectKey extends keyof ObjectType>(
-    path: ObjectKey,
-  ): TypedControl<ObjectType[ObjectKey]> | null;
+export interface TypedFormGroup<T> extends FormGroup {
+  get<V extends T[K], K extends keyof T>(
+    path: K,
+  ): TypedAbstractControl<V> | null;
   /** @inheritdoc FormGroup.get */
   get(path: string | (string | number)[]): AbstractControl | null;
 
-  addControl<K extends keyof ObjectType>(
-    name: Extract<K, string>,
-    control: TypedControl<ObjectType[K]> | AbstractControl,
+  addControl(
+    name: string,
+    control: TypedAbstractControl<any>,
     options?: { emitEvent?: boolean },
   ): void;
 
-  contains(controlName: keyof ObjectType | (string & {})): boolean;
+  contains(controlName: keyof T | (string & {})): boolean;
 
-  getRawValue(): DeepPartial<ObjectType>;
+  getRawValue(): DeepPartial<T>;
 
   patchValue(
-    value: Partial<ObjectType>,
+    value: Partial<T>,
     options?: { onlySelf?: boolean; emitEvent?: boolean },
   ): void;
 
   removeControl(
-    name: keyof ObjectType | (string & {}),
+    name: keyof T | (string & {}),
     options?: { emitEvent?: boolean },
   ): void;
 
   reset(
-    value?: Partial<ObjectType>,
+    value?: Partial<T>,
     options?: { onlySelf?: boolean; emitEvent?: boolean },
   ): void;
 
-  setControl<K extends keyof ObjectType>(
+  setControl<K extends keyof T>(
     name: Extract<K, string>,
-    control: TypedControl<ObjectType[K]> | AbstractControl,
+    control: TypedFormControl<T[K]> | AbstractControl,
     options?: { emitEvent?: boolean },
   ): void;
 
   setValue(
-    value: ObjectType & { [key: string]: any },
+    value: T & { [key: string]: any },
     options?: { onlySelf?: boolean; emitEvent?: boolean },
   ): void;
 }
 
-export class TypedFormGroup<ObjectType> extends FormGroup {
+export class TypedFormGroup<T> extends FormGroup {
   declare controls: {
-    [ObjectKey in keyof ObjectType]: TypedControl<ObjectType[ObjectKey]>;
+    [ObjectKey in keyof T]: TypedFormControl<T[ObjectKey]>;
   };
   declare value: {
-    [ObjectKey in keyof ObjectType]: ObjectType[ObjectKey];
+    [ObjectKey in keyof T]: T[ObjectKey];
   };
-  declare valueChanges: Observable<ObjectType[keyof ObjectType]>;
+  declare valueChanges: Observable<T[keyof T]>;
 }
 
 // TYPED FORM ARRAY TYPING
-export interface TypedFormArray<ObjectValues> extends FormArray {
-  get(path: number): TypedControl<ObjectValues> | null;
+export interface TypedFormArray<T> extends FormArray {
+  get(path: number): TypedFormControl<T> | null;
   get(path: Array<string | number> | string): AbstractControl | null;
-  at(index: number): TypedControl<ObjectValues>;
+  at(index: number): TypedFormControl<T>;
 
   insert(
     index: number,
-    control: TypedControl<ObjectValues>,
+    control: TypedFormControl<T>,
     options?: { emitEvent?: boolean },
   ): void;
 
   push(
-    control: TypedControl<ObjectValues>,
+    control: TypedFormControl<T>,
     options?: { emitEvent?: boolean },
   ): void;
 
   setControl(
     index: number,
-    control: TypedControl<ObjectValues>,
+    control: TypedFormControl<T>,
     options?: { emitEvent?: boolean },
   ): void;
 
   setValue(
-    value: ObjectValues[],
+    value: T[],
     options?: { onlySelf?: boolean; emitEvent?: boolean },
   ): void;
 }
 
-export class TypedFormArray<ObjectValues> extends FormArray {
-  declare readonly controls: TypedControl<ObjectValues>[];
-  declare readonly value: ObjectValues[];
+export class TypedFormArray<T> extends FormArray {
+  declare readonly controls: TypedFormControl<T>[];
+  declare readonly value: T[];
 }
 
 // TYPED FORM BUILDER TYPING
-type TypedControlDefinition<ObjectType> =
-  | ObjectType
-  | [ObjectType, ...any]
-  | TypedControl<ObjectType>;
-// | ({ value: ObjectType[ObjectKeys] } & {
+type TypedControlDefinition<T> =
+  | T
+  | [T, ...any]
+  | TypedFormControl<T>;
+// | ({ value: T[K] } & {
 //     [key: string | number | symbol]: any;
 //   });
 
-type TypedGroupControlConfigDefinition<ObjectType> = {
-  [ObjectKeys in keyof ObjectType]: TypedControlDefinition<
-    ObjectType[ObjectKeys]
-  >;
+type TypedGroupControlConfigDefinition<T> = {
+  [K in keyof T]: T[K];
 };
-type TypedArrayControlConfigDefinition<ObjectType> =
-  TypedControlDefinition<ObjectType>[];
+type TypedArrayControlConfigDefinition<T> =
+  TypedControlDefinition<T>[];
 
 type FormBuilderOptions = Parameters<FormBuilder['group']>['1'];
 
 export interface TypedFormBuilder {
-  group<ObjectType>(
-    controlsConfig: TypedGroupControlConfigDefinition<ObjectType>,
+  group<T>(
+    controlsConfig: TypedGroupControlConfigDefinition<T>,
     options?: FormBuilderOptions,
-  ): TypedFormGroup<ObjectType>;
+  ): TypedFormGroup<T>;
 
-  control<ObjectValue>(
-    formState: TypedControlDefinition<ObjectValue>,
+  control<T>(
+    formState: TypedControlDefinition<T>,
     validatorOrOpts?: ValidatorFn | ValidatorFn[] | FormControlOptions | null,
     asyncValidator?: AsyncValidatorFn | AsyncValidatorFn[] | null,
-  ): TypedControl<ObjectValue>;
+  ): TypedFormControl<T>;
 
-  array<ObjectType>(
-    controlsConfig: TypedArrayControlConfigDefinition<ObjectType>,
+  array<T>(
+    controlsConfig: TypedArrayControlConfigDefinition<T>,
     validatorOrOpts?:
       | ValidatorFn
       | ValidatorFn[]
       | AbstractControlOptions
       | null,
     asyncValidator?: AsyncValidatorFn | AsyncValidatorFn[] | null,
-  ): TypedFormArray<ObjectType>;
+  ): TypedFormArray<T>;
 }
 
-export class TypedFormBuilder extends FormBuilder {}
+export class TypedFormBuilder extends FormBuilder { }
