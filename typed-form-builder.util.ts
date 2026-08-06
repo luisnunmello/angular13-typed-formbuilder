@@ -40,15 +40,20 @@ import { Observable } from 'rxjs';
 
 type UnwrapArray<T> = T extends readonly (infer U)[] ? UnwrapArray<U> : T;
 
-type ExtractValue<T> = T extends TypedAbstractControl<any> ? T
-  : T extends { value?: infer U; disabled?: boolean } ? U
-  : T extends ValidatorFn ? never
+type ExtractValue<T> = T extends TypedAbstractControl<any>
+  ? T
+  : T extends { value?: infer U; disabled?: boolean }
+  ? U
+  : T extends ValidatorFn
+  ? never
   : T;
 
 export type ExtractValueFromControlDefinition<T> = ExtractValue<UnwrapArray<T>>;
 
-export type DeepPartial<T> = T extends Function | Date | RegExp ? T
-  : T extends object ? { [K in keyof T]?: ExtractValueFromControlDefinition<DeepPartial<T[K]>> }
+export type DeepPartial<T> = T extends Function | Date | RegExp
+  ? T
+  : T extends object
+  ? { [K in keyof T]?: ExtractValueFromControlDefinition<DeepPartial<T[K]>> }
   : T;
 
 export interface TypedFormControl<T> extends FormControl {
@@ -79,9 +84,12 @@ export class TypedFormControl<T> extends FormControl {
 }
 
 type TypedAbstractControl<T> = T extends TypedFormGroup<infer U>
-  ? TypedFormGroup<U> : T extends TypedFormControl<infer U>
-  ? TypedFormControl<U> : T extends TypedFormArray<infer U>
-  ? TypedFormArray<U> : TypedFormControl<T>;
+  ? TypedFormGroup<U>
+  : T extends TypedFormControl<infer U>
+  ? TypedFormControl<U>
+  : T extends TypedFormArray<infer U>
+  ? TypedFormArray<U>
+  : TypedFormControl<T>;
 
 // TYPED FORM GROUP TYPING
 export interface TypedFormGroup<T> extends FormGroup {
