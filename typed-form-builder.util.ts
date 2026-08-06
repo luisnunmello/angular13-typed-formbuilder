@@ -132,21 +132,21 @@ export class TypedFormGroup<T> extends FormGroup {
 
 // TYPED FORM ARRAY TYPING
 export interface TypedFormArray<T> extends FormArray {
-  get(path: number): TypedAbstractControl<T> | null;
+  get(path: number): TypedAbstractControl<ExtractValueFromControlDefinition<T>> | null;
   get(path: Array<string | number> | string): AbstractControl | null;
-  at(index: number): TypedAbstractControl<T>;
+  at(index: number): TypedAbstractControl<ExtractValueFromControlDefinition<T>>;
 
   insert(index: number, control: TypedAbstractControl<T>, options?: { emitEvent?: boolean }): void;
 
-  push(control: TypedAbstractControl<T>, options?: { emitEvent?: boolean }): void;
+  push(control: TypedAbstractControl<ExtractValueFromControlDefinition<T>>, options?: { emitEvent?: boolean }): void;
 
-  setControl(index: number, control: TypedAbstractControl<T>, options?: { emitEvent?: boolean }): void;
+  setControl(index: number, control: TypedAbstractControl<ExtractValueFromControlDefinition<T>>, options?: { emitEvent?: boolean }): void;
 
   setValue(value: T[], options?: { onlySelf?: boolean; emitEvent?: boolean }): void;
 }
 
 export class TypedFormArray<T> extends FormArray {
-  declare readonly controls: TypedFormControl<T>[];
+  declare readonly controls: TypedAbstractControl<ExtractValueFromControlDefinition<T>>[];
   declare readonly value: T[];
 }
 
