@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.7
+ * Version: 0.1.8
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -83,12 +83,9 @@ export class TypedFormControl<T> extends FormControl {
   declare defaultValue: T;
 }
 
-type TypedAbstractControl<T> = T extends TypedFormGroup<infer U>
-  ? TypedFormGroup<U>
-  : T extends TypedFormControl<infer U>
-  ? TypedFormControl<U>
-  : T extends TypedFormArray<infer U>
-  ? TypedFormArray<U>
+type TypedAbstractControl<T> = [T] extends [TypedFormGroup<infer U>] ? TypedFormGroup<U>
+  : [T] extends [TypedFormControl<infer U>] ? TypedFormControl<U>
+  : [T] extends [TypedFormArray<infer U>] ? TypedFormArray<U>
   : TypedFormControl<T>;
 
 // TYPED FORM GROUP TYPING
