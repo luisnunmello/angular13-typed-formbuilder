@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.9
+ * Version: 0.1.10
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -91,6 +91,12 @@ type TypedAbstractControl<T> = [T] extends [TypedFormGroup<infer U>] ? TypedForm
   : TypedFormControl<T>;
 
 
+export type PathsOf<T> = T extends TypedAbstractControl ? PathsOf<DeepValue<T>> : {
+  [K in keyof T & string]:
+  T[K] extends object ? (K | `${K}.${PathsOf<T[K]>}`) : K
+
+}
+
 // TYPED FORM GROUP TYPING
 export class TypedFormGroup<T> extends FormGroup {
   declare controls: {
@@ -107,7 +113,7 @@ export class TypedFormGroup<T> extends FormGroup {
   declare setValue: (value: DeepValue<T>, options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
 
   // @ts-ignore TS2416: intentional incompatible override for typed API
-  declare get: <K extends keyof T>(path: K) => TypedAbstractControl<ExtractValueFromControlDefinition<T[K]>> | null;
+  declare get: (path: PathsOf<T>) => TypedAbstractControl<ExtractValueFromControlDefinition<T[K]>> | null;
 
   declare addControl: (name: string, control: TypedAbstractControl<any>, options?: { emitEvent?: boolean }) => void;
 
@@ -128,6 +134,7 @@ export class TypedFormGroup<T> extends FormGroup {
     options?: { emitEvent?: boolean }
   ) => void;
 }
+
 
 // TYPED FORM ARRAY TYPING
 export class TypedFormArray<T> extends FormArray {
@@ -164,7 +171,7 @@ type TypedArrayControlConfigDefinition<T> = TypedControlDefinition<T>[];
 type FormBuilderOptions = Parameters<FormBuilder['group']>['1'];
 
 export class TypedFormBuilder extends FormBuilder {
-  // @ts-expect-error TS2416: intentional incompatible override for typed API
+  // @ts-ignore TS2416: intentional incompatible override for typed API
   declare group: <T>(controlsConfig: TypedGroupControlConfigDefinition<T>, options?: FormBuilderOptions) => TypedFormGroup<T>;
 
   declare control: <T>(
