@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.11
+ * Version: 0.1.12
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -90,13 +90,12 @@ type TypedAbstractControl<T> = [T] extends [TypedFormGroup<infer U>] ? TypedForm
   : [T] extends [TypedFormArray<infer U>] ? TypedFormArray<U>
   : TypedFormControl<T>;
 // TYPED FORM GROUP TYPING
-export type TwoLevelPathFormGroup<T> = T extends TypedFormGroup<any> ? {
-  [K in keyof T['controls'] & string]: | K | (
-    T["controls"][K] extends TypedFormGroup<any>
-    ? `${K}.${keyof T["controls"][K]["controls"] & string}`
-    : never
-  )
-}[keyof T['controls'] & string] : T
+export type TwoLevelPathFormGroup<T> = T extends TypedFormGroup<infer U> ? {
+    [K in keyof U & string]: | K | (
+          U[K] extends TypedFormGroup<any> ? `${K}.${keyof U[K]["controls"] & string}` : never
+    )
+  }[keyof U & string]
+: never;
 
 export type ControlAtPath<T extends TypedFormGroup<any>, P extends TwoLevelPathFormGroup<T>> =
   P extends `${infer X}.${infer Y}` ? // IF Path is x.y
