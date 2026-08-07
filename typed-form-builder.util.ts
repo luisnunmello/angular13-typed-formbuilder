@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.10
+ * Version: 0.1.11
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -89,15 +89,27 @@ type TypedAbstractControl<T> = [T] extends [TypedFormGroup<infer U>] ? TypedForm
   : [T] extends [TypedFormControl<infer U>] ? TypedFormControl<U>
   : [T] extends [TypedFormArray<infer U>] ? TypedFormArray<U>
   : TypedFormControl<T>;
-
-
-export type PathsOf<T> = T extends TypedAbstractControl ? PathsOf<DeepValue<T>> : {
-  [K in keyof T & string]:
-  T[K] extends object ? (K | `${K}.${PathsOf<T[K]>}`) : K
-
-}
-
 // TYPED FORM GROUP TYPING
+export type TwoLevelPathFormGroup<T> = T extends TypedFormGroup<any> ? {
+  [K in keyof T['controls'] & string]: | K | (
+    T["controls"][K] extends TypedFormGroup<any>
+    ? `${K}.${keyof T["controls"][K]["controls"] & string}`
+    : never
+  )
+}[keyof T['controls'] & string] : T
+
+export type ControlAtPath<T extends TypedFormGroup<any>, P extends TwoLevelPathFormGroup<T>> =
+  P extends `${infer X}.${infer Y}` ? // IF Path is x.y
+    X extends keyof T['controls'] ? // IF x is key of T.controls
+     T['controls'][X] extends TypedFormGroup<any> ? // IF T.controls.x is TypedFormGroup
+      Y extends keyof T['controls'][X]['controls'] ? // IF y is key of T.controls.x.controls
+        T['controls'][X]['controls'][Y] // yes, Return type of T.controls.x.controls.y
+        : never // no (impossible), y is not key of T.controls.x.controls
+      : never // no (impossible), T.controls.x is not TypedFormGroup
+    : never  // no (impossible), x is not a key of T.controls
+  : P extends keyof T['controls'] ? 
+    T['controls'][P] 
+    : never; // no, T.controls.x not key of T.control (impossible) 
 export class TypedFormGroup<T> extends FormGroup {
   declare controls: {
     [K in keyof T]: TypedAbstractControl<ExtractValueFromControlDefinition<T[K]>>;
@@ -113,7 +125,7 @@ export class TypedFormGroup<T> extends FormGroup {
   declare setValue: (value: DeepValue<T>, options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
 
   // @ts-ignore TS2416: intentional incompatible override for typed API
-  declare get: (path: PathsOf<T>) => TypedAbstractControl<ExtractValueFromControlDefinition<T[K]>> | null;
+  declare get: <K extends TwoLevelPathFormGroup<TypedFormGroup<T>>>(path: K) => TypedAbstractControl<ExtractValueFromControlDefinition<ControlAtPath<TypedFormGroup<T>, K>>> | null;
 
   declare addControl: (name: string, control: TypedAbstractControl<any>, options?: { emitEvent?: boolean }) => void;
 
@@ -190,3 +202,5 @@ export class TypedFormBuilder extends FormBuilder {
 // TESTS
 // type Expect<T extends true> = T;
 // type Equal<X, Y> = (<T>() => T extends X ? 1 : 2) extends <T>() => T extends Y ? 1 : 2 ? true : false;
+
+// TESTS
