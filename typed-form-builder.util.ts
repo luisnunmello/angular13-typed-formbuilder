@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.12
+ * Version: 0.1.13
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -39,10 +39,12 @@ import {
 
 import { Observable } from 'rxjs';
 
+type FormControlState<T> = {value: T, disabled: boolean};
+
 type UnwrapArray<T> = T extends readonly (infer U)[] ? UnwrapArray<U> : T;
 
 type ExtractValue<T> = T extends TypedAbstractControl<any> ? T
-  : T extends { value?: infer U; disabled?: boolean } ? U
+  : T extends FormControlState<infer U> ? U
   : T extends ValidatorFn ? never
   : T;
 
@@ -52,20 +54,19 @@ export type DeepValue<T> = T extends Function | Date | RegExp ? T
   : T extends object ? { [K in keyof T]: ExtractValueFromControlDefinition<DeepValue<T[K]>> }
   : T;
 
-export type DeepPartial<T> = T extends Function | Date | RegExp ? T
-  : T extends object ? { [K in keyof T]?: ExtractValueFromControlDefinition<DeepPartial<T[K]>> }
+export type DeepPartialValue<T> = T extends Function | Date | RegExp ? T
+  : T extends object ? { [K in keyof T]?: ExtractValueFromControlDefinition<DeepPartialValue<T[K]>> }
   : T;
 
-export interface TypedFormControl<T> extends FormControl { }
-export class TypedFormControl<T> extends FormControl {
-  declare value: ExtractValueFromControlDefinition<T>;
+export class TypedFormControl<T, UseRawValue extends boolean = false> extends FormControl {
+  declare value: UseRawValue extends false ? ExtractValueFromControlDefinition<T> : T;
 
   declare valueChanges: Observable<T>;
 
   declare defaultValue: T;
 
   declare setValue: (
-    value: T,
+    value: UseRawValue extends false ? DeepValue<T> : T,
     options?: {
       onlySelf?: boolean;
       emitEvent?: boolean;
@@ -75,7 +76,7 @@ export class TypedFormControl<T> extends FormControl {
   ) => void;
 
   declare patchValue: (
-    value: DeepPartial<T>,
+    value: UseRawValue extends false ? DeepPartialValue<T> : T,
     options?: {
       onlySelf?: boolean;
       emitEvent?: boolean;
@@ -85,7 +86,7 @@ export class TypedFormControl<T> extends FormControl {
   ) => void;
 }
 
-type TypedAbstractControl<T> = [T] extends [TypedFormGroup<infer U>] ? TypedFormGroup<U>
+export type TypedAbstractControl<T> = [T] extends [TypedFormGroup<infer U>] ? TypedFormGroup<U>
   : [T] extends [TypedFormControl<infer U>] ? TypedFormControl<U>
   : [T] extends [TypedFormArray<infer U>] ? TypedFormArray<U>
   : TypedFormControl<T>;
@@ -109,13 +110,13 @@ export type ControlAtPath<T extends TypedFormGroup<any>, P extends TwoLevelPathF
   : P extends keyof T['controls'] ? 
     T['controls'][P] 
     : never; // no, T.controls.x not key of T.control (impossible) 
-export class TypedFormGroup<T> extends FormGroup {
+export class TypedFormGroup<T, UseRawValue extends boolean = false> extends FormGroup {
   declare controls: {
-    [K in keyof T]: TypedAbstractControl<ExtractValueFromControlDefinition<T[K]>>;
+    [K in keyof T]: TypedAbstractControl<UseRawValue extends false ? ExtractValueFromControlDefinition<T[K]> : T[K]>;
   };
 
   declare value: {
-    [K in keyof T]: ExtractValueFromControlDefinition<T[K]>;
+    [K in keyof T]: UseRawValue extends false ? ExtractValueFromControlDefinition<T[K]> : T[K];
   };
 
   declare valueChanges: Observable<DeepValue<T>>;
@@ -130,28 +131,28 @@ export class TypedFormGroup<T> extends FormGroup {
 
   declare contains: (controlName: keyof T | (string & {})) => boolean;
 
-  declare getRawValue: () => DeepPartial<T>;
+  declare getRawValue: () => DeepPartialValue<T>;
 
   // @ts-ignore TS2416: intentional incompatible override for typed API
-  declare patchValue: (value: DeepPartial<T>, options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
+  declare patchValue: (value: DeepPartialValue<T>, options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
 
-  declare removeControl: (name: keyof T | (string & {}), options?: { emitEvent?: boolean }) => void;
+  declare removeControl: <K extends TwoLevelPathFormGroup<TypedFormGroup<T>>>(name: K, options?: { emitEvent?: boolean }) => void;
 
-  declare reset: (value?: DeepPartial<T>, options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
+  declare reset: (value?: DeepPartialValue<T>, options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
 
-  declare setControl: <K extends keyof T>(
-    name: Extract<K, string>,
-    control: TypedFormControl<T[K]> | AbstractControl,
+  declare setControl: <K extends TwoLevelPathFormGroup<TypedFormGroup<T>>>(
+    name: K,
+    control: TypedAbstractControl<ExtractValueFromControlDefinition<ControlAtPath<TypedFormGroup<T>, K>>>,
     options?: { emitEvent?: boolean }
   ) => void;
 }
 
 
 // TYPED FORM ARRAY TYPING
-export class TypedFormArray<T> extends FormArray {
+export class TypedFormArray<T, UseRawValue extends boolean = false> extends FormArray {
   declare readonly controls: TypedAbstractControl<ExtractValueFromControlDefinition<T>>[];
 
-  declare readonly value: T[];
+  declare readonly value: UseRawValue extends false ? ExtractValueFromControlDefinition<T>[] : T[];
 
   declare get: (path: Array<string | number> | string) => TypedAbstractControl<ExtractValueFromControlDefinition<T>> | null;
 
@@ -186,7 +187,7 @@ export class TypedFormBuilder extends FormBuilder {
   declare group: <T>(controlsConfig: TypedGroupControlConfigDefinition<T>, options?: FormBuilderOptions) => TypedFormGroup<T>;
 
   declare control: <T>(
-    formState: TypedControlDefinition<T>,
+    formState: T | FormControlState<T>,
     validatorOrOpts?: ValidatorFn | ValidatorFn[] | FormControlOptions | null,
     asyncValidator?: AsyncValidatorFn | AsyncValidatorFn[] | null
   ) => TypedFormControl<T>;
