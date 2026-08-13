@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.13
+ * Version: 0.1.14
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -39,7 +39,7 @@ import {
 
 import { Observable } from 'rxjs';
 
-type FormControlState<T> = {value: T, disabled: boolean};
+type FormControlState<T> = {value?: T, disabled?: boolean};
 
 type UnwrapArray<T> = T extends readonly (infer U)[] ? UnwrapArray<U> : T;
 
