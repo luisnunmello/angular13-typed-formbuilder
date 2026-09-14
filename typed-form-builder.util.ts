@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.14
+ * Version: 0.1.15
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
@@ -26,7 +26,6 @@
  */
 
 import {
-  AbstractControl,
   AbstractControlOptions,
   AsyncValidatorFn,
   FormArray,
@@ -39,34 +38,36 @@ import {
 
 import { Observable } from 'rxjs';
 
-type FormControlState<T> = {value?: T, disabled?: boolean};
+// I've readded the obligatory value because if youd use object in the Type, and both properties were non obligatory, it would go to #1 branch and try to infer a value from object type, which doesnt have any typing, resulting in unknown.
+type FormControlState<T> = {value: T, disabled?: boolean}; 
 
 type UnwrapArray<T> = T extends readonly (infer U)[] ? UnwrapArray<U> : T;
 
 type ExtractValue<T> = T extends TypedAbstractControl<any> ? T
-  : T extends FormControlState<infer U> ? U
+  : T extends FormControlState<infer U> ? U // #1
   : T extends ValidatorFn ? never
   : T;
 
-export type ExtractValueFromControlDefinition<T> = ExtractValue<UnwrapArray<T>>;
+// Exclude null from typing
+export type ExtractValueFromControlDefinition<T> = Exclude<ExtractValue<UnwrapArray<T>>, null>;
 
-export type DeepValue<T> = T extends Function | Date | RegExp ? T
-  : T extends object ? { [K in keyof T]: ExtractValueFromControlDefinition<DeepValue<T[K]>> }
+export type DeepValue<T, Nullable extends boolean = false> = T extends Function | Date | RegExp ? T
+  : T extends object ? { [K in keyof T]: Nullable extends false ? ExtractValueFromControlDefinition<DeepValue<T[K]>> : ExtractValueFromControlDefinition<DeepValue<T[K]>> | null }
   : T;
 
 export type DeepPartialValue<T> = T extends Function | Date | RegExp ? T
   : T extends object ? { [K in keyof T]?: ExtractValueFromControlDefinition<DeepPartialValue<T[K]>> }
   : T;
 
-export class TypedFormControl<T, UseRawValue extends boolean = false> extends FormControl {
-  declare value: UseRawValue extends false ? ExtractValueFromControlDefinition<T> : T;
+export class TypedFormControl<T> extends FormControl {
+  declare value: ExtractValueFromControlDefinition<T> | null;
 
-  declare valueChanges: Observable<T>;
+  declare valueChanges: Observable<ExtractValueFromControlDefinition<T> | null>;
 
-  declare defaultValue: T;
+  declare defaultValue: ExtractValueFromControlDefinition<T> | null;
 
   declare setValue: (
-    value: UseRawValue extends false ? DeepValue<T> : T,
+    value: DeepValue<ExtractValueFromControlDefinition<T>> | null,
     options?: {
       onlySelf?: boolean;
       emitEvent?: boolean;
@@ -76,7 +77,40 @@ export class TypedFormControl<T, UseRawValue extends boolean = false> extends Fo
   ) => void;
 
   declare patchValue: (
-    value: UseRawValue extends false ? DeepPartialValue<T> : T,
+    value: DeepPartialValue<ExtractValueFromControlDefinition<T>> | null,
+    options?: {
+      onlySelf?: boolean;
+      emitEvent?: boolean;
+      emitModelToViewChange?: boolean;
+      emitViewToModelChange?: boolean;
+    }
+  ) => void;
+}
+
+export class RawTypedFormControl<T> extends TypedFormControl<T> {
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare value: T | null;
+
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare valueChanges: Observable<T | null>;
+
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare defaultValue: T | null;
+
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare setValue: (
+    value: T | null,
+    options?: {
+      onlySelf?: boolean;
+      emitEvent?: boolean;
+      emitModelToViewChange?: boolean;
+      emitViewToModelChange?: boolean;
+    }
+  ) => void;
+
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare patchValue: (
+    value: T | null,
     options?: {
       onlySelf?: boolean;
       emitEvent?: boolean;
@@ -90,6 +124,12 @@ export type TypedAbstractControl<T> = [T] extends [TypedFormGroup<infer U>] ? Ty
   : [T] extends [TypedFormControl<infer U>] ? TypedFormControl<U>
   : [T] extends [TypedFormArray<infer U>] ? TypedFormArray<U>
   : TypedFormControl<T>;
+
+export type RawTypedAbstractControl<T> = [T] extends [RawTypedFormGroup<infer U>] ? RawTypedFormGroup<U>
+  : [T] extends [RawTypedFormControl<infer U>] ? RawTypedFormControl<U>
+  : [T] extends [RawTypedFormArray<infer U>] ? RawTypedFormArray<U>
+  : TypedFormControl<T>;
+
 // TYPED FORM GROUP TYPING
 export type TwoLevelPathFormGroup<T> = T extends TypedFormGroup<infer U> ? {
     [K in keyof U & string]: | K | (
@@ -110,28 +150,29 @@ export type ControlAtPath<T extends TypedFormGroup<any>, P extends TwoLevelPathF
   : P extends keyof T['controls'] ? 
     T['controls'][P] 
     : never; // no, T.controls.x not key of T.control (impossible) 
-export class TypedFormGroup<T, UseRawValue extends boolean = false> extends FormGroup {
+    
+export class TypedFormGroup<T> extends FormGroup {
   declare controls: {
-    [K in keyof T]: TypedAbstractControl<UseRawValue extends false ? ExtractValueFromControlDefinition<T[K]> : T[K]>;
+    [K in keyof T]: TypedAbstractControl<ExtractValueFromControlDefinition<T[K]>>;
   };
 
   declare value: {
-    [K in keyof T]: UseRawValue extends false ? ExtractValueFromControlDefinition<T[K]> : T[K];
+    [K in keyof T]: ExtractValueFromControlDefinition<T[K]> | null;
   };
 
-  declare valueChanges: Observable<DeepValue<T>>;
+  declare valueChanges: Observable<DeepValue<T> | null>;
 
   // @ts-ignore TS2416: intentional incompatible override for typed API
-  declare setValue: (value: DeepValue<T>, options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
+  declare setValue: (value: DeepValue<T> | null, options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
 
   // @ts-ignore TS2416: intentional incompatible override for typed API
-  declare get: <K extends TwoLevelPathFormGroup<TypedFormGroup<T>>>(path: K) => TypedAbstractControl<ExtractValueFromControlDefinition<ControlAtPath<TypedFormGroup<T>, K>>> | null;
+  declare get: <K extends TwoLevelPathFormGroup<TypedFormGroup<T>>>(path: K) => TypedAbstractControl<ExtractValueFromControlDefinition<ControlAtPath<TypedFormGroup<T>, K>>>;
 
   declare addControl: (name: string, control: TypedAbstractControl<any>, options?: { emitEvent?: boolean }) => void;
 
   declare contains: (controlName: keyof T | (string & {})) => boolean;
 
-  declare getRawValue: () => DeepPartialValue<T>;
+  declare getRawValue: () => DeepValue<T, true>;
 
   // @ts-ignore TS2416: intentional incompatible override for typed API
   declare patchValue: (value: DeepPartialValue<T>, options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
@@ -147,12 +188,24 @@ export class TypedFormGroup<T, UseRawValue extends boolean = false> extends Form
   ) => void;
 }
 
+export class RawTypedFormGroup<T> extends TypedFormGroup<T> {
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare controls: {
+    [K in keyof T]: TypedAbstractControl<T[K]>;
+  };
+
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare value: {
+    [K in keyof T]: T[K] | null;
+  };
+}
+
 
 // TYPED FORM ARRAY TYPING
-export class TypedFormArray<T, UseRawValue extends boolean = false> extends FormArray {
+export class TypedFormArray<T> extends FormArray {
   declare readonly controls: TypedAbstractControl<ExtractValueFromControlDefinition<T>>[];
 
-  declare readonly value: UseRawValue extends false ? ExtractValueFromControlDefinition<T>[] : T[];
+  declare readonly value: ExtractValueFromControlDefinition<T>[];
 
   declare get: (path: Array<string | number> | string) => TypedAbstractControl<ExtractValueFromControlDefinition<T>> | null;
 
@@ -168,7 +221,34 @@ export class TypedFormArray<T, UseRawValue extends boolean = false> extends Form
     options?: { emitEvent?: boolean }
   ) => void;
 
-  declare setValue: (value: T[], options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
+  declare setValue: (value: TypedAbstractControl<ExtractValueFromControlDefinition<T>> | null[] , options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
+}
+
+// TYPED FORM ARRAY TYPING
+export class RawTypedFormArray<T> extends TypedFormArray<T> {
+  declare readonly controls: TypedAbstractControl<ExtractValueFromControlDefinition<T>>[];
+  
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare readonly value: T[];
+
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare get: (path: Array<string | number> | string) => T | null;
+
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare at: (index: number) => T;
+
+  declare insert: (index: number, control: TypedAbstractControl<T>, options?: { emitEvent?: boolean }) => void;
+
+  declare push: (control: TypedAbstractControl<ExtractValueFromControlDefinition<T>>, options?: { emitEvent?: boolean }) => void;
+
+  declare setControl: (
+    index: number,
+    control: TypedAbstractControl<ExtractValueFromControlDefinition<T>>,
+    options?: { emitEvent?: boolean }
+  ) => void;
+
+  // @ts-ignore TS2416: intentional incompatible override for typed API
+  declare setValue: (value: T | null[], options?: { onlySelf?: boolean; emitEvent?: boolean }) => void;
 }
 
 // TYPED FORM BUILDER TYPING
