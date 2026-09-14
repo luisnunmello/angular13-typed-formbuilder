@@ -1,6 +1,6 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.1.15
+ * Version: 0.2.0
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
  * MIT License
  *
