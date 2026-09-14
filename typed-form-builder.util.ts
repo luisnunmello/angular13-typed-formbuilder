@@ -1,28 +1,7 @@
 /**
  * Angular Typed Form Builder 
- * Version: 0.2.0
+ * Version: 0.2.1
  * Repository: https://github.com/luisnunmello/angular13-typed-formbuilder/
- * MIT License
- *
- * Copyright (c) 2026 Luís Eduardo
-
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
-
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
-
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
  */
 
 import {
@@ -38,13 +17,17 @@ import {
 
 import { Observable } from 'rxjs';
 
+type IsUnknown<T> = unknown extends T 
+  ? ([T] extends [null] ? false : true) // Nuance to exclude 'any' or broader checks
+  : false;
+
 // I've readded the obligatory value because if youd use object in the Type, and both properties were non obligatory, it would go to #1 branch and try to infer a value from object type, which doesnt have any typing, resulting in unknown.
-type FormControlState<T> = {value: T, disabled?: boolean}; 
+type FormControlState<T> = {disabled?: boolean, value?: T};
 
 type UnwrapArray<T> = T extends readonly (infer U)[] ? UnwrapArray<U> : T;
 
 type ExtractValue<T> = T extends TypedAbstractControl<any> ? T
-  : T extends FormControlState<infer U> ? U // #1
+  : T extends FormControlState<infer U> ? IsUnknown<U> extends true ? object : U // #1
   : T extends ValidatorFn ? never
   : T;
 

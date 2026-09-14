@@ -1,4 +1,5 @@
-import { TypedFormBuilder } from './utils/typed-form-builder.util';
+import { Validators } from "@angular/forms";
+import { TypedFormBuilder } from "./typed-form-builder.util";
 
 // TESTS
 type Expect<T extends true> = T;
@@ -46,5 +47,15 @@ const group2RawValue = group2.getRawValue();
 type IsObjectTypingCorrect = Expect<
   Equal<typeof group2RawValue.objectOrString, string | object | null>
 >;
+
+const group3 = fb.group({
+  teste: fb.group({
+    oi: fb.control([null as string | null, Validators.required])
+  })
+})
+
+group3.getRawValue()
+
+
 
 
