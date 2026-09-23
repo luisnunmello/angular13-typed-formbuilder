@@ -38,6 +38,17 @@ import {
 } from '@angular/forms';
 import { Observable } from 'rxjs';
 
+export type DeepPartial<T> = T extends {
+  value: infer V;
+  patchValue: any;
+}
+  ? DeepPartial<V>
+  : T extends Function | Date | RegExp
+    ? T
+    : T extends object
+      ? { [K in keyof T]?: DeepPartial<T[K]> }
+      : T;
+
 // FORM CONTROL TYPING
 export interface TypedControl<ObjectValue> extends FormControl {
   setValue(
@@ -81,7 +92,7 @@ export interface TypedFormGroup<ObjectType> extends FormGroup {
 
   contains(controlName: keyof ObjectType | (string & {})): boolean;
 
-  getRawValue(): Partial<ObjectType>;
+  getRawValue(): DeepPartial<ObjectType>;
 
   patchValue(
     value: Partial<ObjectType>,
